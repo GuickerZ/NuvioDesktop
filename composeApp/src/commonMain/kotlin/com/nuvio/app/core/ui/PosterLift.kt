@@ -23,6 +23,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Dp
+import com.nuvio.app.isDesktop
 
 internal val LocalPosterClickAnchor = staticCompositionLocalOf<((PosterZoomAnchor) -> Unit)?> { null }
 
@@ -106,6 +107,19 @@ internal fun Modifier.posterCardClickable(
         }
         .then(this)
     if (onClick == null && onLongClick == null) return posterModifier
+    val interactionSource = remember { MutableInteractionSource() }
+    val handleLongClick = onLongClick?.let { longClick ->
+        {
+            source.bounds?.let { cardBounds ->
+                PosterZoomAnchorHolder.stash(
+                    PosterZoomAnchor(cardBounds, zoomImageUrl, zoomCornerRadius).also {
+                        it.source = source
+                    },
+                )
+            }
+            longClick()
+        }
+    }
     return posterModifier
         .desktopPosterHoverScale(
             enabled = hoverScaleEnabled,
@@ -113,7 +127,7 @@ internal fun Modifier.posterCardClickable(
         )
         .combinedClickable(
             interactionSource = interactionSource,
-            indication = if (onPosterClickAnchor == null) LocalIndication.current else null,
+            indication = if (!isDesktop && onPosterClickAnchor == null) LocalIndication.current else null,
             onClick = {
                 if (onClick != null) {
                     source.bounds?.let { bounds ->
